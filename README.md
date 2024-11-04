@@ -123,6 +123,12 @@ Store complex Lua tables, including nested tables and complex state.
 ---@field count number
 local PersistentCounter = {}
 
+function PersistentCounter.new()
+  return {
+    count = 0
+  }
+end
+
 function PersistentCounter:increment()
   self.count = self.count + 1
 end
