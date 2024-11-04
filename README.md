@@ -171,7 +171,7 @@ local function get_data()
     return cached
   else
     local response = http.request('http://api.example.com/data')
-    durable.set_object('api_response', response, "my_api_cache")
+    kv.set('api_response', response, "my_api_cache")
     return response
   end
 end
