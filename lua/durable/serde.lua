@@ -1,3 +1,6 @@
+---@module "durable.serde"
+
+---@type table<durable.kv.Type, fun(value: string): durable.kv.Value>
 local deserializers = setmetatable({
 	string = function(s)
 		return s
@@ -26,6 +29,7 @@ local deserializers = setmetatable({
 	end,
 })
 
+---@type table<durable.kv.Type, fun(value: durable.kv.Value): string>
 local serializers = setmetatable({
 	string = function(s)
 		return s
@@ -46,13 +50,23 @@ local serializers = setmetatable({
 	end,
 })
 
+---@class durable.serde
 local M = {}
 
+---@param value durable.kv.Value
+---@return string, durable.kv.Type
 function M.serialize(value)
 	local t = type(value)
+	if t == "function" then
+		error("Cannot serialize function")
+	end
+	---@cast t durable.kv.Type
 	return serializers[t](value), t
 end
 
+---@param str string
+---@param type durable.kv.Type
+---@return durable.kv.Value
 function M.deserialize(str, type)
 	return deserializers[type](str)
 end

@@ -1,11 +1,35 @@
-local config_ref
-local db
+---@module "durable.kv"
 
-local sqlite = require("sqlite.db")
+---@alias durable.kv.Key string
+
+---@alias durable.kv.Type
+---       | "string"
+---       | "number"
+---       | "table"
+---       | "boolean"
+---       | "nil"
+
+---@alias durable.kv.Value
+---       | string
+---       | number
+---       | boolean
+---       | table
+---       | nil
+
+---@class durable.kv.Entry
+---@field key durable.kv.Key
+---@field value durable.kv.Value
+---@field ltype durable.kv.Type
+---@field ns string
+
+local config_ref
+
 local serde = require("durable.serde")
+local db = require("durable.db")
 
 local GLOBAL = "__GLOBAL__"
 
+---@class durable.kv
 local kv = {}
 
 kv.GLOBAL = GLOBAL
@@ -20,7 +44,7 @@ function kv.set(key, value, ns)
 	ns = ns or GLOBAL
 	local ser, ty = serde.serialize(value)
 	if
-		not db:update("willothy_kv", {
+		not db.get():update("willothy_kv", {
 			where = { key = key },
 			set = {
 				value = ser,
@@ -29,7 +53,7 @@ function kv.set(key, value, ns)
 			},
 		})
 	then
-		db:insert("willothy_kv", {
+		db.get():insert("willothy_kv", {
 			key = key,
 			value = value,
 			namespace = ns,
@@ -46,7 +70,8 @@ function kv.get(key, ns)
 	end
 	ns = ns or GLOBAL
 
-	local res = db:select("willothy_kv", {
+	---@diagnostic disable-next-line: missing-fields
+	local res = db.get():select("willothy_kv", {
 		where = {
 			key = key,
 			namespace = ns,
@@ -65,7 +90,8 @@ function kv.delete(key, ns)
 		error("expected string key")
 	end
 	ns = ns or GLOBAL
-	db:delete("willothy_kv", {
+	db.get():delete("willothy_kv", {
+		---@diagnostic disable-next-line: assign-type-mismatch
 		where = {
 			key = key,
 			namespace = ns,
@@ -77,7 +103,8 @@ end
 ---@return durable.kv.Entry[]
 function kv.list(ns)
 	ns = ns or GLOBAL
-	return db:select("willothy_kv", {
+	---@diagnostic disable-next-line: missing-fields
+	return db.get():select("willothy_kv", {
 		where = {
 			namespace = ns,
 		},
@@ -95,27 +122,11 @@ function kv.update(key, ns, f)
 	kv.set(key, res, ns)
 end
 
----@alias durable.kv.Key string
-
----@alias durable.kv.Value string | number | table | nil
-
----@class durable.kv.Entry
----@field key durable.kv.Key
----@field value durable.kv.Value
----@field ltype "string" | "number" | "table" | "nil"
----@field ns string
-
 ---@param config durable.Config
 function kv.setup(config)
-	config_ref = config
+	local _ = config
 
-	db = sqlite({
-		uri = config_ref.db_path,
-		opts = {},
-	}) --[[@as sqlite_db]]
-
-	db:open(config_ref.db_path)
-	db:execute([[
+	db.get():execute([[
     CREATE TABLE IF NOT EXISTS willothy_kv (
       key       TEXT NOT NULL,
       namespace TEXT NOT NULL,

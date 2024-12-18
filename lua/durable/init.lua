@@ -1,6 +1,10 @@
-local M = {}
+---@module "durable"
 
 local kv = require("durable.kv")
+local db = require("durable.db")
+
+---@class durable
+local M = {}
 
 M.kv = kv
 
@@ -20,6 +24,7 @@ function M.setup(opts)
 
 	config = vim.tbl_deep_extend("force", config, opts)
 
+	db.setup(config)
 	kv.setup(config)
 end
 
